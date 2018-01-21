@@ -3,7 +3,7 @@
 A collection of simple skills, implemented using a REST endpoint that Amazon calls when a user invokes them from Echo hardware. 
 
 * **SillyWords** - Makes Alexa say a given number of random [interjections](https://developer.amazon.com/docs/custom-skills/speechcon-reference-interjections-english-us.html) (special words and phrases Alexa pronounces expressively). I [published this](https://www.amazon.com/randyb-org-SillyWords/dp/B07114RPKY) in the Alexa Skill store and received free Echo hardware from Amazon.
-    > User: Ask SillyWords to say four silly words
+    > User: Tell SillyWords to say four silly words
     
     > Alexa: abracadabra! bam! kerboom! zoinks!
 
@@ -20,7 +20,7 @@ A collection of simple skills, implemented using a REST endpoint that Amazon cal
     
     > Jinkies: _[\*confused\*](http://randyb.org/jinkies.jpg)_
 
-* **Door** - Tells you when the front door was last opened. Pulls the latest timestamp from a Mongo database, which gets logged to via an [IoT wifi sensor](http://supermechanical.com/twine/) attached to my front door.
+* **Door** - Tells me when my front door was last opened. Pulls the latest timestamp from a Mongo database, which gets logged to via an [IoT wifi sensor](http://supermechanical.com/twine/) attached to my front door.
     > User: Ask Jinkies about the door.
     
     > Alexa: The door was last opened at 4:32 pm.
