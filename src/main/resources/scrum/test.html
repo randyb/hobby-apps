@@ -1,0 +1,28 @@
+<html>
+<head>
+    <title>Scrum Notifier</title>
+    <meta name="viewport" content="width=device-width">
+    <script src="http://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script>
+            $(function() {
+                $("#numbers").on('input', function() {
+                    var text = $(this).val();
+                    var digitsOnly = text.replace(/[^0-9\n]/g, '');
+                    $(this).val(digitsOnly);
+                });
+            });
+        </script>
+    <style>
+        h1 { margin-bottom: 0px; }
+    </style>
+</head>
+<body>
+<h1>Scrum Notifier</h1>
+<br>
+<form method="post" action="/phone">
+    <textarea name="numbers" id="numbers" rows="20"></textarea>
+    <br>
+    <input type="submit" value="Call Numbers">
+</form>
+</body>
+</html>

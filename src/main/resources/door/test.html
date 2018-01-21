@@ -1,0 +1,26 @@
+<html>
+<head>
+    <title>Door Test Page</title>
+</head>
+<body>
+    <h1>POST /door/events</h1>
+    <form method="post" action="events">
+        temp: <input type="text" name="temp" value="72"><br>
+        key: <input type="text" name="key" value="secret"><br>
+        door:
+            <select name="door">
+                <option value="front">front</option>
+                <option value="pet">pet</option>
+            </select>
+        <br>
+        <input type="submit" value="POST">
+    </form>
+
+    <h1>GET /door/events</h1>
+    <form method="get" action="events">
+        start: <input type="text" name="start" value="1445056793"><br>
+        limit: <input type="text" name="limit" value="3"><br>
+        <input type="submit" value="GET">
+    </form>
+</body>
+</html>

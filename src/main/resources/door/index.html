@@ -1,0 +1,119 @@
+<html>
+    <head>
+        <title>Door Notifier</title>
+        <meta name="viewport" content="width=device-width">
+        <script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            var Notification = window.Notification || window.mozNotification || window.webkitNotification || window.msNotification;
+            var latestTimestamp = 0;
+            var log = null;
+            var failCount = 0;
+            var sound = new Audio("https://randyb.org/static/door.mp3");
+	        var current = null;
+
+            $(function() {
+                log = $("#log");
+
+                // request permission for notifications
+                if (Notification) {
+                    Notification.requestPermission(function (permission) {
+		                console.log(permission);
+	                });
+                }
+
+                // get most recent
+                $.getJSON("events", {
+                        limit:50
+                    },
+                    function (events) {
+                        // add events to log
+                        for (var i = events.length - 1; i >= 0; --i) {
+                            var event = events[i];
+                            latestTimestamp = event.time;
+                            log.prepend(eventToString(event) + "\n");
+                        }
+                        // start polling
+                        pollForEvents();
+                    }
+                );
+            });
+
+            function pollForEvents() {
+                $("#lastPollTime").text(new Date().toLocaleTimeString());
+
+                $.getJSON("events", {
+                    start: latestTimestamp
+                }).done(function (events) {
+                    // add events to log
+                    for (var i = events.length - 1; i >= 0; --i) {
+                        var event = events[i];
+                        latestTimestamp = event.time;
+                        var str = eventToString(event);
+                        log.prepend(str + "\n");
+                        showNotification("Door opened", str, event.door);
+                    }
+                    failCount = 0;
+                }).fail(function (error) {
+                    log.prepend("Error: " + error.statusText + "\n");
+                    ++failCount;
+                }).always(function () {
+                    if (failCount < 10) {
+                        setTimeout(pollForEvents, 1);
+                    } else {
+                        $("#lastPollTime").append(" (Stopped due to errors)");
+                        showNotification("ERROR", "Stopped polling due to errors");
+                    }
+                });
+            }
+
+            function eventToString(event) {
+                var date = new Date(event.time).toLocaleString();
+                return date + ", " + event.temp + "F " +
+                    "[" + event.door + "]" +
+                    (event.fake == true ? " (fake)":"");
+            }
+
+            function showNotification(title, body, door) {
+            	sound.play();
+                if (Notification) {
+                    var isPet = (door == "pet");
+                    var icon = (isPet ?
+                        "https://randyb.org/static/cat_icon.png" :
+                        "https://randyb.org/static/door_icon.jpg");
+                    if (current) {
+                        current.close();
+                    }
+                    var notification = new Notification(title, {
+                        body:body,
+                        icon:icon,
+                        requireInteraction: !isPet
+                    });
+                    current = notification;
+                    notification.onclick = function () {
+                        notification.close();
+                        current = null;
+                    };
+                    if (isPet) {
+                        setTimeout(function() {
+                            notification.close();
+                        }, 10000);
+                    }
+                    
+                } else {
+                    alert(title + ": " + body);
+                }
+            }
+        </script>
+        <link href="data:image/x-icon;base64,AAABAAEAEBAAAAAAAABoBQAAFgAAACgAAAAQAAAAIAAAAAEACAAAAAAAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAAAAWFhYAHWt1ABsmtAAoaGhAD5+rQBUib8AR0dHAFqayQBHhLUAW5rJAJ+fnwBakbkAeKvSAFSVxwCIt9kAb57WAHJycgCYw+AAVFRUAGaWzAAlZ50ARUVFAFaPtwCdnZ0AhbHaAGKfzABtnNQAcHBwAGOfzABmptEAm5ubAHir0wA2dKoAY7jhAEuIswBL1P8AfX19AEWDsQCiy+MAj8HfAJmZmQBDga8AbGxsAFONtgCp0OYAlL/dAGCSyQBajsQATExMAKSkpABvndMAd3d3AHyz1wBoaGgAfrPXAEpKSgCCs9cAoqKiAEB/rgCRwt4AdXV1AFGLtQCJvdwAi73cAIO42gCnzuUAoKCgAF6bygBzc3MAPXyvAFiWyABkZGQAc6fRAF+03wCYx+EAnp6eAFiQuACr0+gAgICAAHFxcQBpoM0APXmwAJycnAB+fn4AT4m0AEyEugBgYGAAXsTtAH2v1ABRUVEAjbvbAJqamgCex+IAToq6AIey3AB8fHwAfbTXAEKLuABPT08AqtHnAKvR5wBhnswAenp6AEGArgBcXFwApaWlAC9vpQBxntQAg7naAIS52gBFfrQAbqjRAHSv1gBno88AR4WxAKOjowAydKgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAClQE1pjMTgHFhV1RgleBQAAAAE6OnQyMmprDSBJUTsAAABpBAQ6dHQyIVkKDkdoAAAAV0NDBDo6dFI5GghEKgAAAEgLC0MEBDpvD3JmHSYAAAA2TAsLQ0MEVltwHkpzAAAAKxhMTAsLQwYuAiIkYgAAABxTGBhMCwswEjVxWCMAAABFH1NTGExML11BYTdVAAAANFwfH1MYGBQnP21uPgAAAGcpXFwfU1MDQig/QCwAAAAlKSlcXB8fM2RlSzwXAAAAT1RgZzQ9EWwQX04tTQAAAAAAAAAAAAAAAAAbGQwAAAAAAAAAAAAAAAAAAAAAAP//AAAAAQAAwAEAAMABAADAAQAAwAEAAMABAADAAQAAwAEAAMABAADAAQAAwAEAAMABAADAAQAA//EAAP//AAA=" rel="icon" type="image/x-icon" />
+        <style>
+            h1 { margin-bottom: 0px; }
+        </style>
+    </head>
+    <body>
+        <h1>Door Notifier</h1>
+        Last poll: <span id="lastPollTime"></span><br>
+        <textarea id="log" cols="50" rows="15"></textarea>
+        <br>
+        <button onclick="showNotification('Door opened', new Date().toLocaleString())">Test notification</button>
+    </body>
+</html>

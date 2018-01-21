@@ -1,0 +1,152 @@
+<html>
+<head>
+    <title>Scrum Notifier</title>
+    <link href="http://randyb.org/static/alarm-clock.ico" rel="icon" type="image/x-icon" />
+    <meta name="viewport" content="width=device-width">
+    <style>
+        h1 { margin-bottom: 0px; }
+        table { border-collapse: collapse; }
+        table, th, td { border: 1px solid black; padding: 5px; }
+    </style>
+    <script src="//code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js"></script>
+    <script>
+        $(function() {
+            $('#time').val(new Date().toString("h:mm:ss tt"));
+
+            $("#saveButton").click(function () {
+                var name = $("#name").val();
+                var time = $("#time").val();
+                var number = $("#number").val();
+
+                if (name.trim().length == 0) {
+                    alert("Name cannot be empty.");
+                    return;
+                }
+
+                if (number.trim().length == 0) {
+                    alert("Number cannot be empty.");
+                    return;
+                }
+
+                var timestamp = Date.parseExact(time.trim(),[
+                    "h:mm:ss tt",
+                    "hh:mm:ss tt",
+                    "hh:mm tt",
+                    "h:mm tt",
+                    "h:m tt"
+                ]);
+                if (!timestamp) {
+                    alert("Invalid time. Use hh:mm:ss tt format (e.g, '2:30:00 pm')");
+                    return;
+                }
+
+                save(name.trim(), timestamp, number, true);
+            });
+
+            $.getJSON("/phone/list", function (list) {
+                reloadTable(list);
+            });
+
+        });
+
+        function save(name, timestamp, number, enabled) {
+            var postData = {
+                "name" : name,
+                "time" : timestamp.getTime(),
+                "number" : number,
+                "enabled" : enabled,
+                "days": {
+                    "m": $("#m").is(":checked"),
+                    "tu": $("#tu").is(":checked"),
+                    "w": $("#w").is(":checked"),
+                    "th": $("#th").is(":checked"),
+                    "f": $("#f").is(":checked")
+                }
+            };
+
+            $.post("/phone/save", JSON.stringify(postData), function (list) {
+                reloadTable(list);
+            }, "json");
+        }
+
+        function reloadTable(list) {
+            var table = $("#list");
+            $(table).find("tr:gt(0)").remove();
+
+            $.each(list, function (i,data) {
+                var tr = $('<tr>');
+                var checkbox = $('<input type="checkbox"/>');
+                $(checkbox).prop('checked', data.enabled);
+                $(checkbox).change(function () {
+                    console.log(data.name + " is now " + $(checkbox).prop('checked'));
+                    save(data.name, new Date(data.time), data.number, $(checkbox).prop('checked'));
+                });
+                tr.append($('<td>').append(checkbox));
+                tr.append($('<td>').html(data.name));
+                tr.append($('<td>').html(new Date(data.time).toString("M/d/yyyy, h:mm:ss tt")));
+                tr.append($('<td>').html(
+                    (data.days.m?"M ":"") +
+                    (data.days.tu?"Tu ":"") +
+                    (data.days.w?"W ":"") +
+                    (data.days.th?"Th ":"") +
+                    (data.days.f?"F ":"")));
+                tr.append($('<td>').html(data.number));
+                var editButton = $('<button>').html("Edit").click(function () {
+                    $("#name").val(data.name);
+                    $("#time").val(new Date(data.time).toString("h:mm:ss tt"));
+                    $("#number").val(data.number);
+                    $("#m").prop("checked", data.days.m);
+                    $("#tu").prop("checked", data.days.tu);
+                    $("#w").prop("checked", data.days.w);
+                    $("#th").prop("checked", data.days.th);
+                    $("#f").prop("checked", data.days.f);
+                });
+                var deleteButton = $('<button>').html("Delete").click(function () {
+                    if (confirm("Delete " + data.name + "?")) {
+                        $.post("/phone/delete", {name:data.name}, function (list) {
+                            reloadTable(list);
+                        });
+                    }
+                });
+                tr.append($('<td>').append(editButton).append(deleteButton));
+                table.append(tr);
+            });
+        }
+    </script>
+</head>
+    <body>
+    <h1>Scrum Notifier</h1>
+    Schedule your phone to ring at a given time every workday.<br>
+    <hr><br>
+    <table>
+        <tr>
+            <td>Name</td><td><input id="name" type="text" size="30"/> </td>
+        </tr>
+        <tr>
+            <td>Time</td><td><input id="time" type="text" size="30"/></td>
+        </tr>
+        <tr>
+            <td>Days</td>
+            <td>
+                <input id="m" type="checkbox" checked /><label for="m">M</label>
+                <input id="tu" type="checkbox" checked /><label for="tu">Tu</label>
+                <input id="w" type="checkbox" checked /><label for="w">W</label>
+                <input id="th" type="checkbox" checked /><label for="th">Th</label>
+                <input id="f" type="checkbox" checked /><label for="m">F</label>
+            </td>
+        </tr>
+        <tr>
+            <td>Number</td><td><input id="number" type="text"/></td>
+        </tr>
+    </table>
+    <button id="saveButton">Save</button>
+    <br><hr><br>
+    <table id="list" style="font-family: monospace">
+        <tr><th>On?</th><th>Name</th><th>Next Time</th><th>Days</th><th>Number</th></tr>
+    </table>
+    <br><hr>
+    <i>This was a weekend project; set your expectations accordingly. </i> <br>
+    <i>Contact Randy Baldwin for questions. Code on <a href="https://github.com/randyb/randy-web-services/blob/master/src/main/java/org/randyb/phone/PhoneServices.java">GitHub</a>.</i>
+</body>
+</html>
